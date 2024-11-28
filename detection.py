@@ -1,168 +1,149 @@
-# importando bibliotecas
+# importando bibliotecas e classe
 import cv2
+from app.models import Bus
 
-#Criando Classe 'Bus' para integrar ela mais facilmente
-class Bus ():
-    
-    # Definindo parametros
-    def __init__(self, IDBus):
-        self.IDBus = IDBus
-        self.Total = 0
-        self.Up = 0
-        self.Down = 0
 
-    # Função para achar o centro do objeto, será utilizada na detecção dele
-    def center(x, y, w, h):
-        x1 = int(w / 2)
-        y1 = int(h / 2)
+def detectionVideo(Bus):
+    #cap = cv2.VideoCapture('./imgs/test/1.mp4')
+    cap = cv2.VideoCapture('./imgs/proc/video.mp4')
+    scale = 0.5
 
-        cx = x + x1
-        cy = y + y1
+    detects = []
 
-        return cx, cy
+    posL = 450
+    offset = 40
 
-    def detectionVideo(self):
-        #cap = cv2.VideoCapture('./imgs/test/1.mp4')
-        cap = cv2.VideoCapture('./imgs/proc/video.mp4')
+    xy1 = (245, posL)
+    xy2 = (645, posL)
 
-        scale = 0.5
+    fgbg = cv2.createBackgroundSubtractorMOG2()
 
-        detects = []
+    # Iniciando tratamento e analise das imagens
+    while True:
+        ret, frame = cap.read()
 
-        posL = 450
-        offset = 40
+        # Verifica se o vídeo acabou
+        if not ret or frame is None:
+            print("fim do vídeo.")
+            break
 
-        xy1 = (245, posL)
-        xy2 = (645, posL)
+        # Redimensionando o video para facilitar a visualização
+        rw = int(frame.shape[1] * scale)
+        rh = int(frame.shape[0] * scale)
+        framer = cv2.resize(frame, (rw, rh))
 
-        fgbg = cv2.createBackgroundSubtractorMOG2()
-
-        # Iniciando tratamento e analise das imagens
-        while True:
-            ret, frame = cap.read()
-
-            # Verifica se o vídeo acabou
-            if not ret or frame is None:
-                print("fim do vídeo.")
-                break
-
-            # Redimensionando o video para facilitar a visualização
-            rw = int(frame.shape[1] * scale)
-            rh = int(frame.shape[0] * scale)
-            framer = cv2.resize(frame, (rw, rh))
-
-            #print(framer.shape[1]) #x = 960
-            #print(framer.shape[0]) #y = 540
+        #print(framer.shape[1]) #x = 960
+        #print(framer.shape[0]) #y = 540
             
-            # Processamento dos frames 
+        # Processamento dos frames 
 
             # Step 1 - Escala de cinza 
-            gray = cv2.cvtColor(framer, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(framer, cv2.COLOR_BGR2GRAY)
 
             # Step 2 - Blur
-            fgblur = fgbg.apply(gray)
+        fgblur = fgbg.apply(gray)
 
             # Step 3 - Binarização
-            retval, th = cv2.threshold(fgblur, 200, 255, cv2.THRESH_BINARY)
+        retval, th = cv2.threshold(fgblur, 200, 255, cv2.THRESH_BINARY)
 
             # Padronizando objetos vistos e aumentando area para melhorar a detecção
-            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
 
-            opening = cv2.morphologyEx(th, cv2.MORPH_OPEN, kernel, iterations = 2)
+        opening = cv2.morphologyEx(th, cv2.MORPH_OPEN, kernel, iterations = 2)
 
-            dilation = cv2.dilate(opening,kernel,iterations = 8)
+        dilation = cv2.dilate(opening,kernel,iterations = 8)
 
-            closing = cv2.morphologyEx(dilation, cv2.MORPH_CLOSE, kernel, iterations = 8)
+        closing = cv2.morphologyEx(dilation, cv2.MORPH_CLOSE, kernel, iterations = 8)
 
-            cv2.imshow("closing", closing)
+        cv2.imshow("closing", closing)
 
-            # Adicionando faixa aonde será realizada o tracking do objeto e a contagem dele
-            # Linha Central
-            cv2.line(framer,xy1,xy2,(255,0,0),3)
-            # Linhas secundarias 
-            cv2.line(framer,(xy1[0],posL-offset),(xy2[0],posL-offset),(255,255,0),2)
-            cv2.line(framer,(xy1[0],posL+offset),(xy2[0],posL+offset),(255,255,0),2)
+        # Adicionando faixa aonde será realizada o tracking do objeto e a contagem dele
+        # Linha Central
+        cv2.line(framer,xy1,xy2,(255,0,0),3)
+        # Linhas secundarias 
+        cv2.line(framer,(xy1[0],posL-offset),(xy2[0],posL-offset),(255,255,0),2)
+        cv2.line(framer,(xy1[0],posL+offset),(xy2[0],posL+offset),(255,255,0),2)
             
-            # Step 4 - Encontrando contornos do objeto
-            contours, hierarchy = cv2.findContours(closing,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        # Step 4 - Encontrando contornos do objeto
+        contours, hierarchy = cv2.findContours(closing,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 
-            i = 0
-            for cnt in contours: 
-                (x, y, w, h) = cv2.boundingRect(cnt)
+        i = 0
+        for cnt in contours: 
+            (x, y, w, h) = cv2.boundingRect(cnt)
 
-                area = cv2.contourArea(cnt)
+            area = cv2.contourArea(cnt)
 
-                # Desenhando retangulo no objeto encontrado
-                if int(area) > 3000:
-                    centro = Bus.center(x, y, w, h)
-                    cv2.putText(framer, str(i), (x+5, y+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255),2)
-                    cv2.circle(framer, centro, 4, (0, 0,255), -1)
-                    cv2.rectangle(framer,(x,y),(x+w,y+h),(0,255,0),2)
+            # Desenhando retangulo no objeto encontrado
+            if int(area) > 3000:
+                centro = Bus.center(x, y, w, h)
+                cv2.putText(framer, str(i), (x+5, y+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255),2)
+                cv2.circle(framer, centro, 4, (0, 0,255), -1)
+                cv2.rectangle(framer,(x,y),(x+w,y+h),(0,255,0),2)
 
                     # Se é um objeto não reconhecido, é adicionado a detecção
-                    if len(detects) <= i:
+                if len(detects) <= i:
                         detects.append([])
                     
                     # Verifica se o centro do objeto esta entre a faixa de detecção
-                    if centro[1] > posL - offset and centro[1] < posL + offset:
-                        detects[i].append(centro) 
-                        #print(detects)
-                        print(self.Total, self.Up, self.Down)
+                if centro[1] > posL - offset and centro[1] < posL + offset:
+                    detects[i].append(centro) 
+                    #print(detects)
+                    print(Bus.Total, Bus.Up, Bus.Down)
 
-                    # Zerando os dados de cada objeto no tracking 
-                    else:
-                        detects[i].clear()
-                    i += 1 
+                # Zerando os dados de cada objeto no tracking 
+                else:
+                    detects[i].clear()
+                i += 1 
 
-            # Verifica se existe imagem no momento, se não haver, limpar detecções
-            if i == 0:
-                detects.clear()
+        # Verifica se existe imagem no momento, se não haver, limpar detecções
+        if i == 0:
+            detects.clear()
 
-            if len(contours) == 0:
-                detects.clear()
+        if len(contours) == 0:
+            detects.clear()
 
-            # Se existe contorno, ele entra para verificar os detectados e trackear o objeto
-            else:
-                for detect in detects:
-                    for (c, l) in enumerate(detect):
-                        # Iniciando tracking do objeto
+        # Se existe contorno, ele entra para verificar os detectados e trackear o objeto
+        else:
+            for detect in detects:
+                for (c, l) in enumerate(detect):
+                    # Iniciando tracking do objeto
                         
-                        # Analisando se objeto esta subindo
-                        if detect[c-1][1] < posL and l[1] > posL:
-                            detect.clear()
-                            self.Up += 1
-                            self.Total += 1
-                            cv2.line(framer, xy1, xy2, (0,255,0), 5)
-                            continue
+                    # Analisando se objeto esta subindo
+                    if detect[c-1][1] < posL and l[1] > posL:
+                        detect.clear()
+                        Bus.Up += 1
+                        Bus.Total += 1
+                        cv2.line(framer, xy1, xy2, (0,255,0), 5)
+                        continue
 
-                        # Analisando se objeto esta descendo
-                        if detect[c-1][1] > posL and l[1] < posL:
-                            detect.clear()
-                            self.Down += 1
-                            self.Total += 1
-                            cv2.line(framer, xy1, xy2, (0,255,0), 5)
-                            continue
+                    # Analisando se objeto esta descendo
+                    if detect[c-1][1] > posL and l[1] < posL:
+                        detect.clear()
+                        Bus.Down += 1
+                        Bus.Total += 1
+                        cv2.line(framer, xy1, xy2, (0,255,0), 5)
+                        continue
 
-                        if c > 0:
-                            cv2.line(framer, detect[c-1], l, (0,0,255), 1)
+                    if c > 0:
+                        cv2.line(framer, detect[c-1], l, (0,0,255), 1)
 
-            # Exibindo dados que foram extraídos
-            cv2.putText(framer, "TOTAL: "+str(self.Total), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255),2)
-            cv2.putText(framer, "SUBINDO: "+str(self.Up), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0),2)
-            cv2.putText(framer, "DESCENDO: "+str(self.Down), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255),2)
+        # Exibindo dados que foram extraídos
+        cv2.putText(framer, "TOTAL: "+str(Bus.Total), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255),2)
+        cv2.putText(framer, "SUBINDO: "+str(Bus.Up), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0),2)
+        cv2.putText(framer, "DESCENDO: "+str(Bus.Down), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255),2)
 
-            cv2.imshow("real", framer)
+        cv2.imshow("real", framer)
             
-            if cv2.waitKey(30) & 0xFF == ord('q'):
-                break
+        if cv2.waitKey(30) & 0xFF == ord('q'):
+            break
 
-        cap.release()
-        cv2.destroyAllWindows()
+    cap.release()
+    cv2.destroyAllWindows()
 
-        return self.Total, self.Up, self.Down
+    return Bus.Total, Bus.Up, Bus.Down
 
 
 if __name__ == '__main__':
     ex1 = Bus(1)
-    total, up, down = Bus.detectionVideo(ex1)
+    total, up, down = detectionVideo(ex1)
     print(total, up, down)
