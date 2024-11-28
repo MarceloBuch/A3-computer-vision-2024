@@ -111,16 +111,16 @@ def detectionVideo(Bus):
                     # Analisando se objeto esta subindo
                     if detect[c-1][1] < posL and l[1] > posL:
                         detect.clear()
-                        Bus.Up += 1
-                        Bus.Total += 1
+                        Bus.incrementUp()
+                        Bus.incrementTotal()
                         cv2.line(framer, xy1, xy2, (0,255,0), 5)
                         continue
 
                     # Analisando se objeto esta descendo
                     if detect[c-1][1] > posL and l[1] < posL:
                         detect.clear()
-                        Bus.Down += 1
-                        Bus.Total += 1
+                        Bus.incrementDown()
+                        Bus.incrementTotal()
                         cv2.line(framer, xy1, xy2, (0,255,0), 5)
                         continue
 
