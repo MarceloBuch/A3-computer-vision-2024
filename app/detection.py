@@ -1,12 +1,24 @@
 # importando bibliotecas e classe
 import cv2
-from app.models import Bus
 
 
-def detectionVideo(Bus):
+# Função para achar o centro do objeto, será utilizada na detecção dele
+def center(x, y, w, h):
+    x1 = int(w / 2)
+    y1 = int(h / 2)
+
+    cx = x + x1
+    cy = y + y1
+
+    return cx, cy
+
+def detectionVideo():
     #cap = cv2.VideoCapture('./imgs/test/1.mp4')
     cap = cv2.VideoCapture('./imgs/proc/video.mp4')
     scale = 0.5
+    Total = 0
+    Up = 0
+    Down = 0
 
     detects = []
 
@@ -55,7 +67,7 @@ def detectionVideo(Bus):
 
         closing = cv2.morphologyEx(dilation, cv2.MORPH_CLOSE, kernel, iterations = 8)
 
-        cv2.imshow("closing", closing)
+        #cv2.imshow("closing", closing)
 
         # Adicionando faixa aonde será realizada o tracking do objeto e a contagem dele
         # Linha Central
@@ -75,7 +87,7 @@ def detectionVideo(Bus):
 
             # Desenhando retangulo no objeto encontrado
             if int(area) > 3000:
-                centro = Bus.center(x, y, w, h)
+                centro = center(x, y, w, h)
                 cv2.putText(framer, str(i), (x+5, y+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255),2)
                 cv2.circle(framer, centro, 4, (0, 0,255), -1)
                 cv2.rectangle(framer,(x,y),(x+w,y+h),(0,255,0),2)
@@ -88,7 +100,7 @@ def detectionVideo(Bus):
                 if centro[1] > posL - offset and centro[1] < posL + offset:
                     detects[i].append(centro) 
                     #print(detects)
-                    print(Bus.Total, Bus.Up, Bus.Down)
+                    #print(Total, Up, Down)
 
                 # Zerando os dados de cada objeto no tracking 
                 else:
@@ -111,16 +123,16 @@ def detectionVideo(Bus):
                     # Analisando se objeto esta subindo
                     if detect[c-1][1] < posL and l[1] > posL:
                         detect.clear()
-                        Bus.incrementUp()
-                        Bus.incrementTotal()
+                        Up += 1
+                        Total += 1
                         cv2.line(framer, xy1, xy2, (0,255,0), 5)
                         continue
 
                     # Analisando se objeto esta descendo
                     if detect[c-1][1] > posL and l[1] < posL:
                         detect.clear()
-                        Bus.incrementDown()
-                        Bus.incrementTotal()
+                        Down += 1
+                        Total += 1
                         cv2.line(framer, xy1, xy2, (0,255,0), 5)
                         continue
 
@@ -128,9 +140,11 @@ def detectionVideo(Bus):
                         cv2.line(framer, detect[c-1], l, (0,0,255), 1)
 
         # Exibindo dados que foram extraídos
-        cv2.putText(framer, "TOTAL: "+str(Bus.Total), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255),2)
-        cv2.putText(framer, "SUBINDO: "+str(Bus.Up), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0),2)
-        cv2.putText(framer, "DESCENDO: "+str(Bus.Down), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255),2)
+        cv2.putText(framer, "TOTAL: "+str(Total), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255),2)
+        cv2.putText(framer, "SUBINDO: "+str(Up), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0),2)
+        cv2.putText(framer, "DESCENDO: "+str(Down), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255),2)
+
+        yield {"up": Up, "down": Down, "total": Total}
 
         cv2.imshow("real", framer)
             
@@ -140,10 +154,4 @@ def detectionVideo(Bus):
     cap.release()
     cv2.destroyAllWindows()
 
-    return Bus.Total, Bus.Up, Bus.Down
 
-
-if __name__ == '__main__':
-    ex1 = Bus(1)
-    total, up, down = detectionVideo(ex1)
-    print(total, up, down)
