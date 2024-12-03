@@ -2,13 +2,14 @@ from app import db
 from app.models import Bus
 from app.detection import detectionVideo
 
+
 def process_video(id_bus, app):
 
     for result in detectionVideo():
         # Extrai os dados
-        up = result['up']
-        down = result['down']
-        total = result['total']
+        up = result["up"]
+        down = result["down"]
+        total = result["total"]
 
         # Verifica se o registro já existe no banco
         with app.app_context():
@@ -27,5 +28,6 @@ def process_video(id_bus, app):
 
             db.session.refresh(bus)
 
-
-        print(f"Atualizado: IDBus={bus.IDBus}, UP={bus.Up}, DOWN={bus.Down}, TOTAL={bus.Total}")
+        print(
+            f"Atualizado: IDBus={bus.IDBus}, UP={bus.Up}, DOWN={bus.Down}, TOTAL={bus.Total}"
+        )
