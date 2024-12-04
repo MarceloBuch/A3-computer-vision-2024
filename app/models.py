@@ -1,7 +1,6 @@
 # Importando bibliotecas para o banco
 from app import db
 
-
 # Criando Classe 'Bus' para integrar ela mais facilmente
 class Bus(db.Model):
     __tablename__ = "buses"

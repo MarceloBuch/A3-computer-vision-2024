@@ -28,6 +28,6 @@ def process_video(id_bus, app):
 
             db.session.refresh(bus)
 
-        print(
-            f"Atualizado: IDBus={bus.IDBus}, UP={bus.Up}, DOWN={bus.Down}, TOTAL={bus.Total}"
-        )
+        # print(
+        #     f"Atualizado: IDBus={bus.IDBus}, UP={bus.Up}, DOWN={bus.Down}, TOTAL={bus.Total}"
+        # )

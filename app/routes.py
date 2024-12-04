@@ -1,21 +1,16 @@
-from flask import Flask, jsonify, render_template
-from app import db
+from flask import jsonify, render_template
+from app import app, db
 from app.models import Bus
-
-app = Flask(__name__)
-
 
 @app.route("/")
 def index():
     buses = Bus.query.all()
-    return render_template("index.html", buses=buses)
-
+    return render_template("templates/index.html", buses=buses)
 
 @app.route("/list", methods=["GET"])
 def list_bus_data():
     buses = Bus.query.all()
     return jsonify([bus.to_dict() for bus in buses])
-
 
 @app.route("/reset/<int:id_bus>", methods=["POST"])
 def reset_bus_data(id_bus):
@@ -30,7 +25,6 @@ def reset_bus_data(id_bus):
             200,
         )
     return jsonify({"error": "Ônibus não encontrado."}), 404
-
 
 @app.route("/bus/<int:id_bus>", methods=["GET"])
 def get_bus(id_bus):

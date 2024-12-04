@@ -15,8 +15,6 @@ def create_app():
 
     with app.app_context():
         try:
-            from app import routes
-
             db.create_all()
         except Exception as exception:
             print(
