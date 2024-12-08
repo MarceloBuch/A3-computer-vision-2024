@@ -147,7 +147,7 @@ def detectionVideo():
                     if detect[c - 1][1] > posL and l[1] < posL:
                         detect.clear()
                         Down += 1
-                        Total += 1
+                        Total -= 1
                         cv2.line(framer, xy1, xy2, (0, 255, 0), 5)
                         continue
 
