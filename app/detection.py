@@ -43,7 +43,7 @@ def detectionVideo():
         # Redimensionando o video para facilitar a visualização
         rw = int(frame.shape[1] * scale)
         rh = int(frame.shape[0] * scale)
-        framer = cv2.resize(frame, (rw, rh))
+        frame = cv2.resize(frame, (rw, rh))
 
         # print(framer.shape[1]) #x = 960
         # print(framer.shape[0]) #y = 540
@@ -51,13 +51,16 @@ def detectionVideo():
         # Processamento dos frames
 
         # Step 1 - Escala de cinza
-        gray = cv2.cvtColor(framer, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        #cv2.imshow("gray", gray)
 
         # Step 2 - Blur
         fgblur = fgbg.apply(gray)
+        #cv2.imshow("blur", fgblur)
 
         # Step 3 - Binarização
         retval, th = cv2.threshold(fgblur, 200, 255, cv2.THRESH_BINARY)
+        #cv2.imshow("binarizado", th)
 
         # Padronizando objetos vistos e aumentando area para melhorar a detecção
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
@@ -68,17 +71,17 @@ def detectionVideo():
 
         closing = cv2.morphologyEx(dilation, cv2.MORPH_CLOSE, kernel, iterations=8)
 
-        # cv2.imshow("closing", closing)
+        #cv2.imshow("closing", closing)
 
         # Adicionando faixa aonde será realizada o tracking do objeto e a contagem dele
         # Linha Central
-        cv2.line(framer, xy1, xy2, (255, 0, 0), 3)
+        cv2.line(frame, xy1, xy2, (255, 0, 0), 3)
         # Linhas secundarias
         cv2.line(
-            framer, (xy1[0], posL - offset), (xy2[0], posL - offset), (255, 255, 0), 2
+            frame, (xy1[0], posL - offset), (xy2[0], posL - offset), (255, 255, 0), 2
         )
         cv2.line(
-            framer, (xy1[0], posL + offset), (xy2[0], posL + offset), (255, 255, 0), 2
+            frame, (xy1[0], posL + offset), (xy2[0], posL + offset), (255, 255, 0), 2
         )
 
         # Step 4 - Encontrando contornos do objeto
@@ -96,7 +99,7 @@ def detectionVideo():
             if int(area) > 3000:
                 centro = center(x, y, w, h)
                 cv2.putText(
-                    framer,
+                    frame,
                     str(i),
                     (x + 5, y + 15),
                     cv2.FONT_HERSHEY_SIMPLEX,
@@ -104,8 +107,8 @@ def detectionVideo():
                     (0, 255, 255),
                     2,
                 )
-                cv2.circle(framer, centro, 4, (0, 0, 255), -1)
-                cv2.rectangle(framer, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                cv2.circle(frame, centro, 4, (0, 0, 255), -1)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
                 # Se é um objeto não reconhecido, é adicionado a detecção
                 if len(detects) <= i:
@@ -140,7 +143,7 @@ def detectionVideo():
                         detect.clear()
                         Up += 1
                         Total += 1
-                        cv2.line(framer, xy1, xy2, (0, 255, 0), 5)
+                        cv2.line(frame, xy1, xy2, (0, 255, 0), 5)
                         continue
 
                     # Analisando se objeto esta descendo
@@ -148,15 +151,15 @@ def detectionVideo():
                         detect.clear()
                         Down += 1
                         Total -= 1
-                        cv2.line(framer, xy1, xy2, (0, 255, 0), 5)
+                        cv2.line(frame, xy1, xy2, (0, 255, 0), 5)
                         continue
 
                     if c > 0:
-                        cv2.line(framer, detect[c - 1], l, (0, 0, 255), 1)
+                        cv2.line(frame, detect[c - 1], l, (0, 0, 255), 1)
 
         # Exibindo dados que foram extraídos
         cv2.putText(
-            framer,
+            frame,
             "TOTAL: " + str(Total),
             (10, 20),
             cv2.FONT_HERSHEY_SIMPLEX,
@@ -165,7 +168,7 @@ def detectionVideo():
             2,
         )
         cv2.putText(
-            framer,
+            frame,
             "SUBINDO: " + str(Up),
             (10, 40),
             cv2.FONT_HERSHEY_SIMPLEX,
@@ -174,7 +177,7 @@ def detectionVideo():
             2,
         )
         cv2.putText(
-            framer,
+            frame,
             "DESCENDO: " + str(Down),
             (10, 60),
             cv2.FONT_HERSHEY_SIMPLEX,
@@ -185,7 +188,7 @@ def detectionVideo():
 
         yield {"up": Up, "down": Down, "total": Total}
 
-        cv2.imshow("real", framer)
+        cv2.imshow("real", frame)
 
         if cv2.waitKey(30) & 0xFF == ord("q"):
             break
